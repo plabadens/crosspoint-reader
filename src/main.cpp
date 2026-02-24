@@ -84,30 +84,30 @@ EpdFont notosans18BoldItalicFont(&notosans_18_bolditalic);
 EpdFontFamily notosans18FontFamily(&notosans18RegularFont, &notosans18BoldFont, &notosans18ItalicFont,
                                    &notosans18BoldItalicFont);
 
-EpdFont opendyslexic8RegularFont(&opendyslexic_8_regular);
-EpdFont opendyslexic8BoldFont(&opendyslexic_8_bold);
-EpdFont opendyslexic8ItalicFont(&opendyslexic_8_italic);
-EpdFont opendyslexic8BoldItalicFont(&opendyslexic_8_bolditalic);
-EpdFontFamily opendyslexic8FontFamily(&opendyslexic8RegularFont, &opendyslexic8BoldFont, &opendyslexic8ItalicFont,
-                                      &opendyslexic8BoldItalicFont);
-EpdFont opendyslexic10RegularFont(&opendyslexic_10_regular);
-EpdFont opendyslexic10BoldFont(&opendyslexic_10_bold);
-EpdFont opendyslexic10ItalicFont(&opendyslexic_10_italic);
-EpdFont opendyslexic10BoldItalicFont(&opendyslexic_10_bolditalic);
-EpdFontFamily opendyslexic10FontFamily(&opendyslexic10RegularFont, &opendyslexic10BoldFont, &opendyslexic10ItalicFont,
-                                       &opendyslexic10BoldItalicFont);
-EpdFont opendyslexic12RegularFont(&opendyslexic_12_regular);
-EpdFont opendyslexic12BoldFont(&opendyslexic_12_bold);
-EpdFont opendyslexic12ItalicFont(&opendyslexic_12_italic);
-EpdFont opendyslexic12BoldItalicFont(&opendyslexic_12_bolditalic);
-EpdFontFamily opendyslexic12FontFamily(&opendyslexic12RegularFont, &opendyslexic12BoldFont, &opendyslexic12ItalicFont,
-                                       &opendyslexic12BoldItalicFont);
-EpdFont opendyslexic14RegularFont(&opendyslexic_14_regular);
-EpdFont opendyslexic14BoldFont(&opendyslexic_14_bold);
-EpdFont opendyslexic14ItalicFont(&opendyslexic_14_italic);
-EpdFont opendyslexic14BoldItalicFont(&opendyslexic_14_bolditalic);
-EpdFontFamily opendyslexic14FontFamily(&opendyslexic14RegularFont, &opendyslexic14BoldFont, &opendyslexic14ItalicFont,
-                                       &opendyslexic14BoldItalicFont);
+EpdFont fernmicro10RegularFont(&fernmicro_10_regular);
+EpdFont fernmicro10BoldFont(&fernmicro_10_bold);
+EpdFont fernmicro10ItalicFont(&fernmicro_10_italic);
+EpdFont fernmicro10BoldItalicFont(&fernmicro_10_bolditalic);
+EpdFontFamily fernmicro10FontFamily(&fernmicro10RegularFont, &fernmicro10BoldFont, &fernmicro10ItalicFont,
+                                    &fernmicro10BoldItalicFont);
+EpdFont fernmicro12RegularFont(&fernmicro_12_regular);
+EpdFont fernmicro12BoldFont(&fernmicro_12_bold);
+EpdFont fernmicro12ItalicFont(&fernmicro_12_italic);
+EpdFont fernmicro12BoldItalicFont(&fernmicro_12_bolditalic);
+EpdFontFamily fernmicro12FontFamily(&fernmicro12RegularFont, &fernmicro12BoldFont, &fernmicro12ItalicFont,
+                                    &fernmicro12BoldItalicFont);
+EpdFont fernmicro14RegularFont(&fernmicro_14_regular);
+EpdFont fernmicro14BoldFont(&fernmicro_14_bold);
+EpdFont fernmicro14ItalicFont(&fernmicro_14_italic);
+EpdFont fernmicro14BoldItalicFont(&fernmicro_14_bolditalic);
+EpdFontFamily fernmicro14FontFamily(&fernmicro14RegularFont, &fernmicro14BoldFont, &fernmicro14ItalicFont,
+                                    &fernmicro14BoldItalicFont);
+EpdFont fernmicro16RegularFont(&fernmicro_16_regular);
+EpdFont fernmicro16BoldFont(&fernmicro_16_bold);
+EpdFont fernmicro16ItalicFont(&fernmicro_16_italic);
+EpdFont fernmicro16BoldItalicFont(&fernmicro_16_bolditalic);
+EpdFontFamily fernmicro16FontFamily(&fernmicro16RegularFont, &fernmicro16BoldFont, &fernmicro16ItalicFont,
+                                    &fernmicro16BoldItalicFont);
 #endif  // OMIT_FONTS
 
 EpdFont smallFont(&notosans_8_regular);
@@ -213,10 +213,10 @@ void setupDisplayAndFonts() {
   renderer.insertFont(NOTOSANS_14_FONT_ID, notosans14FontFamily);
   renderer.insertFont(NOTOSANS_16_FONT_ID, notosans16FontFamily);
   renderer.insertFont(NOTOSANS_18_FONT_ID, notosans18FontFamily);
-  renderer.insertFont(OPENDYSLEXIC_8_FONT_ID, opendyslexic8FontFamily);
-  renderer.insertFont(OPENDYSLEXIC_10_FONT_ID, opendyslexic10FontFamily);
-  renderer.insertFont(OPENDYSLEXIC_12_FONT_ID, opendyslexic12FontFamily);
-  renderer.insertFont(OPENDYSLEXIC_14_FONT_ID, opendyslexic14FontFamily);
+  renderer.insertFont(FERNMICRO_10_FONT_ID, fernmicro10FontFamily);
+  renderer.insertFont(FERNMICRO_12_FONT_ID, fernmicro12FontFamily);
+  renderer.insertFont(FERNMICRO_14_FONT_ID, fernmicro14FontFamily);
+  renderer.insertFont(FERNMICRO_16_FONT_ID, fernmicro16FontFamily);
 #endif  // OMIT_FONTS
   renderer.insertFont(UI_10_FONT_ID, ui10FontFamily);
   renderer.insertFont(UI_12_FONT_ID, ui12FontFamily);

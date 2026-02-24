@@ -14,6 +14,7 @@
         pythonEnv = pkgs.python311.withPackages (ps: with ps; [
           pyserial
           colorama
+          freetype-py
           matplotlib
           pillow
         ]);
@@ -25,6 +26,7 @@
             platformio
             pythonEnv
             git
+            ruby
 
             # Code formatting (matching CI version)
             llvmPackages_21.clang-tools

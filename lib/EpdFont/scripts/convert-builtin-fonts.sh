@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 READER_FONT_STYLES=("Regular" "Italic" "Bold" "BoldItalic")
 BOOKERLY_FONT_SIZES=(12 14 16 18)
 NOTOSANS_FONT_SIZES=(12 14 16 18)
-OPENDYSLEXIC_FONT_SIZES=(8 10 12 14)
+FERNMICRO_FONT_SIZES=(10 12 14 16)
 
 for size in ${BOOKERLY_FONT_SIZES[@]}; do
   for style in ${READER_FONT_STYLES[@]}; do
@@ -29,10 +29,10 @@ for size in ${NOTOSANS_FONT_SIZES[@]}; do
   done
 done
 
-for size in ${OPENDYSLEXIC_FONT_SIZES[@]}; do
+for size in ${FERNMICRO_FONT_SIZES[@]}; do
   for style in ${READER_FONT_STYLES[@]}; do
-    font_name="opendyslexic_${size}_$(echo $style | tr '[:upper:]' '[:lower:]')"
-    font_path="../builtinFonts/source/OpenDyslexic/OpenDyslexic-${style}.otf"
+    font_name="fernmicro_${size}_$(echo $style | tr '[:upper:]' '[:lower:]')"
+    font_path="../builtinFonts/source/FernMicro/FernMicro-${style}.ttf"
     output_path="../builtinFonts/${font_name}.h"
     python fontconvert.py $font_name $size $font_path --2bit --compress > $output_path
     echo "Generated $output_path"
