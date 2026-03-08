@@ -44,6 +44,42 @@ ruby -rdigest -e 'puts [
 ].map{|f| Digest::SHA256.hexdigest(File.read(f)).to_i(16) }.sum % (2 ** 32) - (2 ** 31)'
 ))"
 
+echo "#define FERNMICRO_12_FONT_ID ($(
+ruby -rdigest -e 'puts [
+  "./fernmicro_12_regular.h",
+  "./fernmicro_12_bold.h",
+  "./fernmicro_12_bolditalic.h",
+  "./fernmicro_12_italic.h",
+].map{|f| Digest::SHA256.hexdigest(File.read(f)).to_i(16) }.sum % (2 ** 32) - (2 ** 31)'
+))"
+
+echo "#define FERNMICRO_14_FONT_ID ($(
+ruby -rdigest -e 'puts [
+  "./fernmicro_14_regular.h",
+  "./fernmicro_14_bold.h",
+  "./fernmicro_14_bolditalic.h",
+  "./fernmicro_14_italic.h",
+].map{|f| Digest::SHA256.hexdigest(File.read(f)).to_i(16) }.sum % (2 ** 32) - (2 ** 31)'
+))"
+
+echo "#define FERNMICRO_16_FONT_ID ($(
+ruby -rdigest -e 'puts [
+  "./fernmicro_16_regular.h",
+  "./fernmicro_16_bold.h",
+  "./fernmicro_16_bolditalic.h",
+  "./fernmicro_16_italic.h",
+].map{|f| Digest::SHA256.hexdigest(File.read(f)).to_i(16) }.sum % (2 ** 32) - (2 ** 31)'
+))"
+
+echo "#define FERNMICRO_18_FONT_ID ($(
+ruby -rdigest -e 'puts [
+  "./fernmicro_18_regular.h",
+  "./fernmicro_18_bold.h",
+  "./fernmicro_18_bolditalic.h",
+  "./fernmicro_18_italic.h",
+].map{|f| Digest::SHA256.hexdigest(File.read(f)).to_i(16) }.sum % (2 ** 32) - (2 ** 31)'
+))"
+
 echo "#define NOTOSANS_12_FONT_ID ($(
 ruby -rdigest -e 'puts [
   "./notosans_12_regular.h",

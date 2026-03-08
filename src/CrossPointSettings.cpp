@@ -248,6 +248,16 @@ float CrossPointSettings::getReaderLineCompression() const {
         case WIDE:
           return 1.0f;
       }
+    case FERNMICRO:
+      switch (lineSpacing) {
+        case TIGHT:
+          return 0.95f;
+        case NORMAL:
+        default:
+          return 1.0f;
+        case WIDE:
+          return 1.1f;
+      }
   }
 }
 
@@ -309,6 +319,18 @@ int CrossPointSettings::getReaderFontId() const {
           return NOTOSANS_16_FONT_ID;
         case EXTRA_LARGE:
           return NOTOSANS_18_FONT_ID;
+      }
+    case FERNMICRO:
+      switch (fontSize) {
+        case SMALL:
+          return FERNMICRO_12_FONT_ID;
+        case MEDIUM:
+        default:
+          return FERNMICRO_14_FONT_ID;
+        case LARGE:
+          return FERNMICRO_16_FONT_ID;
+        case EXTRA_LARGE:
+          return FERNMICRO_18_FONT_ID;
       }
   }
 }

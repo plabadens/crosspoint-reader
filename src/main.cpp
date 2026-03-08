@@ -86,6 +86,31 @@ EpdFont notosans18ItalicFont(&notosans_18_italic);
 EpdFont notosans18BoldItalicFont(&notosans_18_bolditalic);
 EpdFontFamily notosans18FontFamily(&notosans18RegularFont, &notosans18BoldFont, &notosans18ItalicFont,
                                    &notosans18BoldItalicFont);
+
+EpdFont fernmicro12RegularFont(&fernmicro_12_regular);
+EpdFont fernmicro12BoldFont(&fernmicro_12_bold);
+EpdFont fernmicro12ItalicFont(&fernmicro_12_italic);
+EpdFont fernmicro12BoldItalicFont(&fernmicro_12_bolditalic);
+EpdFontFamily fernmicro12FontFamily(&fernmicro12RegularFont, &fernmicro12BoldFont, &fernmicro12ItalicFont,
+                                    &fernmicro12BoldItalicFont);
+EpdFont fernmicro14RegularFont(&fernmicro_14_regular);
+EpdFont fernmicro14BoldFont(&fernmicro_14_bold);
+EpdFont fernmicro14ItalicFont(&fernmicro_14_italic);
+EpdFont fernmicro14BoldItalicFont(&fernmicro_14_bolditalic);
+EpdFontFamily fernmicro14FontFamily(&fernmicro14RegularFont, &fernmicro14BoldFont, &fernmicro14ItalicFont,
+                                    &fernmicro14BoldItalicFont);
+EpdFont fernmicro16RegularFont(&fernmicro_16_regular);
+EpdFont fernmicro16BoldFont(&fernmicro_16_bold);
+EpdFont fernmicro16ItalicFont(&fernmicro_16_italic);
+EpdFont fernmicro16BoldItalicFont(&fernmicro_16_bolditalic);
+EpdFontFamily fernmicro16FontFamily(&fernmicro16RegularFont, &fernmicro16BoldFont, &fernmicro16ItalicFont,
+                                    &fernmicro16BoldItalicFont);
+EpdFont fernmicro18RegularFont(&fernmicro_18_regular);
+EpdFont fernmicro18BoldFont(&fernmicro_18_bold);
+EpdFont fernmicro18ItalicFont(&fernmicro_18_italic);
+EpdFont fernmicro18BoldItalicFont(&fernmicro_18_bolditalic);
+EpdFontFamily fernmicro18FontFamily(&fernmicro18RegularFont, &fernmicro18BoldFont, &fernmicro18ItalicFont,
+                                    &fernmicro18BoldItalicFont);
 #endif  // OMIT_FONTS
 
 EpdFont smallFont(&notosans_8_regular);
@@ -192,6 +217,11 @@ void setupDisplayAndFonts() {
   renderer.insertFont(NOTOSANS_14_FONT_ID, notosans14FontFamily);
   renderer.insertFont(NOTOSANS_16_FONT_ID, notosans16FontFamily);
   renderer.insertFont(NOTOSANS_18_FONT_ID, notosans18FontFamily);
+
+  renderer.insertFont(FERNMICRO_12_FONT_ID, fernmicro12FontFamily);
+  renderer.insertFont(FERNMICRO_14_FONT_ID, fernmicro14FontFamily);
+  renderer.insertFont(FERNMICRO_16_FONT_ID, fernmicro16FontFamily);
+  renderer.insertFont(FERNMICRO_18_FONT_ID, fernmicro18FontFamily);
 #endif  // OMIT_FONTS
   renderer.insertFont(UI_10_FONT_ID, ui10FontFamily);
   renderer.insertFont(UI_12_FONT_ID, ui12FontFamily);
