@@ -23,6 +23,7 @@ class EpubReaderFootnotesActivity final : public Activity {
  private:
   const std::vector<FootnoteEntry>& footnotes;
   int selectedIndex = 0;
-  int scrollOffset = 0;
   ButtonNavigator buttonNavigator;
+
+  int getPageItems() const;
 };
