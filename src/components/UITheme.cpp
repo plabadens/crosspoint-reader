@@ -48,22 +48,51 @@ void UITheme::setTheme(CrossPointSettings::UI_THEME type) {
   }
 }
 
+Rect UITheme::getContentRect(const GfxRenderer& renderer, bool hasHeader, bool hasTabBar, bool hasButtonHints) {
+  const ThemeMetrics& metrics = UITheme::getInstance().getMetrics();
+  const auto orientation = renderer.getOrientation();
+  const bool isLandscapeCw = orientation == GfxRenderer::Orientation::LandscapeClockwise;
+  const bool isLandscapeCcw = orientation == GfxRenderer::Orientation::LandscapeCounterClockwise;
+  const bool isLandscape = isLandscapeCw || isLandscapeCcw;
+  const bool isPortraitInverted = orientation == GfxRenderer::Orientation::PortraitInverted;
+
+  const int pageWidth = renderer.getScreenWidth();
+  const int pageHeight = renderer.getScreenHeight();
+
+  // Horizontal gutter for landscape button hints (drawn on the side)
+  const int hintGutterWidth = (isLandscape && hasButtonHints) ? metrics.buttonHintsHeight : 0;
+  const int contentX = isLandscapeCw ? hintGutterWidth : 0;
+  const int contentWidth = pageWidth - hintGutterWidth;
+
+  // Vertical offset for inverted portrait (button hints at logical top)
+  const int invertedTopOffset = (isPortraitInverted && hasButtonHints) ? 50 : 0;
+
+  // Top reservation: header + tab bar
+  int topReserved = invertedTopOffset + metrics.topPadding;
+  if (hasHeader) {
+    topReserved += metrics.headerHeight + metrics.verticalSpacing;
+  }
+  if (hasTabBar) {
+    topReserved += metrics.tabBarHeight;
+  }
+
+  // Bottom reservation: button hints only in normal portrait (landscape uses side gutter,
+  // inverted portrait hints are at logical top already covered by invertedTopOffset)
+  int bottomReserved = isPortraitInverted ? metrics.topPadding : 0;
+  if (hasButtonHints && !isLandscape && !isPortraitInverted) {
+    bottomReserved = metrics.verticalSpacing + metrics.buttonHintsHeight;
+  }
+
+  const int contentHeight = pageHeight - topReserved - bottomReserved;
+  return Rect{contentX, topReserved, contentWidth, contentHeight};
+}
+
 int UITheme::getNumberOfItemsPerPage(const GfxRenderer& renderer, bool hasHeader, bool hasTabBar, bool hasButtonHints,
                                      bool hasSubtitle) {
   const ThemeMetrics& metrics = UITheme::getInstance().getMetrics();
-  int reservedHeight = metrics.topPadding;
-  if (hasHeader) {
-    reservedHeight += metrics.headerHeight + metrics.verticalSpacing;
-  }
-  if (hasTabBar) {
-    reservedHeight += metrics.tabBarHeight;
-  }
-  if (hasButtonHints) {
-    reservedHeight += metrics.verticalSpacing + metrics.buttonHintsHeight;
-  }
-  const int availableHeight = renderer.getScreenHeight() - reservedHeight;
+  Rect rect = getContentRect(renderer, hasHeader, hasTabBar, hasButtonHints);
   int rowHeight = hasSubtitle ? metrics.listWithSubtitleRowHeight : metrics.listRowHeight;
-  return availableHeight / rowHeight;
+  return rect.height / rowHeight;
 }
 
 std::string UITheme::getCoverThumbPath(std::string coverBmpPath, int coverHeight) {
