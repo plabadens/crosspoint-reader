@@ -44,15 +44,32 @@ void EpubReaderMenuActivity::onEnter() {
 
 void EpubReaderMenuActivity::onExit() { Activity::onExit(); }
 
+int EpubReaderMenuActivity::getPageItems() const {
+  return GUI.getReaderMenuPageItems(renderer, UITheme::getContentRect(renderer, false, false, true));
+}
+
 void EpubReaderMenuActivity::loop() {
+  const int totalItems = static_cast<int>(menuItems.size());
+  const int pageItems = getPageItems();
+
   // Handle navigation
-  buttonNavigator.onNext([this] {
-    selectedIndex = ButtonNavigator::nextIndex(selectedIndex, static_cast<int>(menuItems.size()));
+  buttonNavigator.onNextRelease([this, totalItems] {
+    selectedIndex = ButtonNavigator::nextIndex(selectedIndex, totalItems);
     requestUpdate();
   });
 
-  buttonNavigator.onPrevious([this] {
-    selectedIndex = ButtonNavigator::previousIndex(selectedIndex, static_cast<int>(menuItems.size()));
+  buttonNavigator.onPreviousRelease([this, totalItems] {
+    selectedIndex = ButtonNavigator::previousIndex(selectedIndex, totalItems);
+    requestUpdate();
+  });
+
+  buttonNavigator.onNextContinuous([this, totalItems, pageItems] {
+    selectedIndex = ButtonNavigator::nextPageIndex(selectedIndex, totalItems, pageItems);
+    requestUpdate();
+  });
+
+  buttonNavigator.onPreviousContinuous([this, totalItems, pageItems] {
+    selectedIndex = ButtonNavigator::previousPageIndex(selectedIndex, totalItems, pageItems);
     requestUpdate();
   });
 
@@ -86,70 +103,26 @@ void EpubReaderMenuActivity::loop() {
 
 void EpubReaderMenuActivity::render(RenderLock&&) {
   renderer.clearScreen();
-  const auto pageWidth = renderer.getScreenWidth();
-  const auto orientation = renderer.getOrientation();
-  // Landscape orientation: button hints are drawn along a vertical edge, so we
-  // reserve a horizontal gutter to prevent overlap with menu content.
-  const bool isLandscapeCw = orientation == GfxRenderer::Orientation::LandscapeClockwise;
-  const bool isLandscapeCcw = orientation == GfxRenderer::Orientation::LandscapeCounterClockwise;
-  // Inverted portrait: button hints appear near the logical top, so we reserve
-  // vertical space to keep the header and list clear.
-  const bool isPortraitInverted = orientation == GfxRenderer::Orientation::PortraitInverted;
-  const int hintGutterWidth = (isLandscapeCw || isLandscapeCcw) ? 30 : 0;
-  // Landscape CW places hints on the left edge; CCW keeps them on the right.
-  const int contentX = isLandscapeCw ? hintGutterWidth : 0;
-  const int contentWidth = pageWidth - hintGutterWidth;
-  const int hintGutterHeight = isPortraitInverted ? 50 : 0;
-  const int contentY = hintGutterHeight;
+  // Use getContentRect with hasHeader=false since drawReaderMenu draws its own header
+  const Rect contentRect = UITheme::getContentRect(renderer, false, false, true);
 
-  // Title
-  const std::string truncTitle =
-      renderer.truncatedText(UI_12_FONT_ID, title.c_str(), contentWidth - 40, EpdFontFamily::BOLD);
-  // Manual centering so we can respect the content gutter.
-  const int titleX =
-      contentX + (contentWidth - renderer.getTextWidth(UI_12_FONT_ID, truncTitle.c_str(), EpdFontFamily::BOLD)) / 2;
-  renderer.drawText(UI_12_FONT_ID, titleX, 15 + contentY, truncTitle.c_str(), true, EpdFontFamily::BOLD);
-
-  // Progress summary
-  std::string progressLine;
+  char progressBuf[64];
   if (totalPages > 0) {
-    progressLine = std::string(tr(STR_CHAPTER_PREFIX)) + std::to_string(currentPage) + "/" +
-                   std::to_string(totalPages) + std::string(tr(STR_PAGES_SEPARATOR));
-  }
-  progressLine += std::string(tr(STR_BOOK_PREFIX)) + std::to_string(bookProgressPercent) + "%";
-  renderer.drawCenteredText(UI_10_FONT_ID, 45, progressLine.c_str());
-
-  // Menu Items
-  const int startY = 75 + contentY;
-  constexpr int lineHeight = 30;
-
-  for (size_t i = 0; i < menuItems.size(); ++i) {
-    const int displayY = startY + (i * lineHeight);
-    const bool isSelected = (static_cast<int>(i) == selectedIndex);
-
-    if (isSelected) {
-      // Highlight only the content area so we don't paint over hint gutters.
-      renderer.fillRect(contentX, displayY, contentWidth - 1, lineHeight, true);
-    }
-
-    renderer.drawText(UI_10_FONT_ID, contentX + 20, displayY, I18N.get(menuItems[i].labelId), !isSelected);
-
-    if (menuItems[i].action == MenuAction::ROTATE_SCREEN) {
-      // Render current orientation value on the right edge of the content area.
-      const char* value = I18N.get(orientationLabels[pendingOrientation]);
-      const auto width = renderer.getTextWidth(UI_10_FONT_ID, value);
-      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY, value, !isSelected);
-    }
-
-    if (menuItems[i].action == MenuAction::AUTO_PAGE_TURN) {
-      // Render current page turn value on the right edge of the content area.
-      const auto value = pageTurnLabels[selectedPageTurnOption];
-      const auto width = renderer.getTextWidth(UI_10_FONT_ID, value);
-      renderer.drawText(UI_10_FONT_ID, contentX + contentWidth - 20 - width, displayY, value, !isSelected);
-    }
+    snprintf(progressBuf, sizeof(progressBuf), "%s%d/%d%s%s%d%%", tr(STR_CHAPTER_PREFIX), currentPage, totalPages,
+             tr(STR_PAGES_SEPARATOR), tr(STR_BOOK_PREFIX), bookProgressPercent);
+  } else {
+    snprintf(progressBuf, sizeof(progressBuf), "%s%d%%", tr(STR_BOOK_PREFIX), bookProgressPercent);
   }
 
-  // Footer / Hints
+  GUI.drawReaderMenu(
+      renderer, contentRect, title.c_str(), progressBuf, static_cast<int>(menuItems.size()), selectedIndex,
+      [this](int i) -> const char* { return I18N.get(menuItems[i].labelId); },
+      [this](int i) -> const char* {
+        if (menuItems[i].action == MenuAction::ROTATE_SCREEN) return I18N.get(orientationLabels[pendingOrientation]);
+        if (menuItems[i].action == MenuAction::AUTO_PAGE_TURN) return pageTurnLabels[selectedPageTurnOption];
+        return nullptr;
+      });
+
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 

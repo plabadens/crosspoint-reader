@@ -256,7 +256,8 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
 
   const int totalPages = (itemCount + pageItems - 1) / pageItems;
   if (totalPages > 1) {
-    const int scrollAreaHeight = rect.height;
+    // Use actual items area height (not full rect) to avoid drawing past the screen edge
+    const int scrollAreaHeight = pageItems * rowHeight;
 
     // Draw scroll bar
     const int scrollBarHeight = (scrollAreaHeight * pageItems) / itemCount;
@@ -273,7 +274,8 @@ void LyraTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
       rect.width -
       (totalPages > 1 ? (LyraMetrics::values.scrollBarWidth + LyraMetrics::values.scrollBarRightOffset) : 1);
   if (selectedIndex >= 0) {
-    renderer.fillRoundedRect(LyraMetrics::values.contentSidePadding, rect.y + selectedIndex % pageItems * rowHeight,
+    renderer.fillRoundedRect(rect.x + LyraMetrics::values.contentSidePadding,
+                             rect.y + selectedIndex % pageItems * rowHeight,
                              contentWidth - LyraMetrics::values.contentSidePadding * 2, rowHeight, cornerRadius,
                              Color::LightGray);
   }
@@ -546,6 +548,76 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
 
     renderer.drawText(UI_12_FONT_ID, textX, textY, label, true);
   }
+}
+
+void LyraTheme::drawReaderMenu(const GfxRenderer& renderer, Rect contentRect, const char* title,
+                               const char* progressSummary, int itemCount, int selectedIndex,
+                               const std::function<const char*(int index)>& rowLabel,
+                               const std::function<const char*(int index)>& rowValue) const {
+  constexpr int rowHeight = LyraMetrics::values.listRowHeight;  // 40
+
+  // Compute header height to include title + progress + separator
+  const int progressY = contentRect.y + LyraMetrics::values.batteryBarHeight + 3 +
+                        renderer.getLineHeight(UI_12_FONT_ID) + 2;
+  const int headerHeight = progressY - contentRect.y + renderer.getLineHeight(SMALL_FONT_ID) + 6;
+
+  // Reuse drawHeader for battery + title + separator (separator lands at rect.y + rect.height - 3)
+  drawHeader(renderer, Rect{contentRect.x, contentRect.y, contentRect.width, headerHeight}, title, nullptr);
+
+  // Progress: left-aligned below title, drawn on top of the header
+  renderer.drawText(SMALL_FONT_ID, contentRect.x + LyraMetrics::values.contentSidePadding, progressY,
+                    progressSummary, true);
+
+  // Menu items with pagination — verticalSpacing gap below separator
+  const int startY = contentRect.y + headerHeight + LyraMetrics::values.verticalSpacing;
+  const int availableHeight = contentRect.height - headerHeight - LyraMetrics::values.verticalSpacing;
+  const int pageItems = (availableHeight > 0 && rowHeight > 0) ? availableHeight / rowHeight : itemCount;
+  const int totalPages = (pageItems > 0) ? (itemCount + pageItems - 1) / pageItems : 1;
+
+  // Scroll bar when multiple pages (matches drawList pattern)
+  int contentWidth = contentRect.width;
+  if (totalPages > 1) {
+    const int scrollAreaHeight = pageItems * rowHeight;
+    const int scrollBarHeight = (scrollAreaHeight * pageItems) / itemCount;
+    const int currentPage = (pageItems > 0) ? selectedIndex / pageItems : 0;
+    const int scrollBarY = startY + ((scrollAreaHeight - scrollBarHeight) * currentPage) / (totalPages - 1);
+    const int scrollBarX = contentRect.x + contentRect.width - LyraMetrics::values.scrollBarRightOffset;
+    renderer.drawLine(scrollBarX, startY, scrollBarX, startY + scrollAreaHeight, true);
+    renderer.fillRect(scrollBarX - LyraMetrics::values.scrollBarWidth, scrollBarY,
+                      LyraMetrics::values.scrollBarWidth, scrollBarHeight, true);
+    contentWidth -= LyraMetrics::values.scrollBarWidth + LyraMetrics::values.scrollBarRightOffset;
+  }
+
+  const int pageStartIndex = (pageItems > 0) ? (selectedIndex / pageItems) * pageItems : 0;
+  for (int i = pageStartIndex; i < itemCount && i < pageStartIndex + pageItems; ++i) {
+    const int displayY = startY + (i - pageStartIndex) * rowHeight;
+    const bool isSelected = (i == selectedIndex);
+    if (isSelected) {
+      renderer.fillRoundedRect(contentRect.x + LyraMetrics::values.contentSidePadding, displayY,
+                               contentWidth - LyraMetrics::values.contentSidePadding * 2, rowHeight, cornerRadius,
+                               Color::LightGray);
+    }
+    renderer.drawText(UI_10_FONT_ID,
+                      contentRect.x + LyraMetrics::values.contentSidePadding + hPaddingInSelection, displayY + 7,
+                      rowLabel(i), true);
+    const char* value = rowValue(i);
+    if (value != nullptr && value[0] != '\0') {
+      const int valueWidth = renderer.getTextWidth(UI_10_FONT_ID, value);
+      renderer.drawText(UI_10_FONT_ID,
+                        contentRect.x + contentWidth - LyraMetrics::values.contentSidePadding -
+                            hPaddingInSelection - valueWidth,
+                        displayY + 7, value, true);
+    }
+  }
+}
+
+int LyraTheme::getReaderMenuPageItems(const GfxRenderer& renderer, Rect contentRect) const {
+  constexpr int rowHeight = LyraMetrics::values.listRowHeight;
+  const int progressY =
+      contentRect.y + LyraMetrics::values.batteryBarHeight + 3 + renderer.getLineHeight(UI_12_FONT_ID) + 2;
+  const int headerHeight = progressY - contentRect.y + renderer.getLineHeight(SMALL_FONT_ID) + 6;
+  const int available = contentRect.height - headerHeight - LyraMetrics::values.verticalSpacing;
+  return (available > 0) ? available / rowHeight : 1;
 }
 
 Rect LyraTheme::drawPopup(const GfxRenderer& renderer, const char* message) const {

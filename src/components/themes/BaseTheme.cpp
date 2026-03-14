@@ -220,7 +220,7 @@ void BaseTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, 
   // Draw selection
   int contentWidth = rect.width - 5;
   if (selectedIndex >= 0) {
-    renderer.fillRect(0, rect.y + selectedIndex % pageItems * rowHeight - 2, rect.width, rowHeight);
+    renderer.fillRect(rect.x, rect.y + selectedIndex % pageItems * rowHeight - 2, rect.width, rowHeight);
   }
   // Draw all items
   const auto pageStartIndex = selectedIndex / pageItems * pageItems;
@@ -594,6 +594,79 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
     // Invert text when the tile is selected, to contrast with the filled background
     renderer.drawText(UI_10_FONT_ID, textX, textY, label, selectedIndex != i);
   }
+}
+
+void BaseTheme::drawReaderMenu(const GfxRenderer& renderer, Rect contentRect, const char* title,
+                               const char* progressSummary, int itemCount, int selectedIndex,
+                               const std::function<const char*(int index)>& rowLabel,
+                               const std::function<const char*(int index)>& rowValue) const {
+  // Title: centred, bold
+  const std::string truncTitle =
+      renderer.truncatedText(UI_12_FONT_ID, title, contentRect.width - 40, EpdFontFamily::BOLD);
+  const int titleX =
+      contentRect.x +
+      (contentRect.width - renderer.getTextWidth(UI_12_FONT_ID, truncTitle.c_str(), EpdFontFamily::BOLD)) / 2;
+  renderer.drawText(UI_12_FONT_ID, titleX, contentRect.y + 15, truncTitle.c_str(), true, EpdFontFamily::BOLD);
+
+  // Progress summary: centred below title
+  renderer.drawCenteredText(UI_10_FONT_ID, contentRect.y + 45, progressSummary);
+
+  // Menu items with pagination
+  constexpr int headerArea = 75;
+  const int startY = contentRect.y + headerArea;
+  constexpr int lineHeight = 30;
+  const int availableHeight = contentRect.height - headerArea;
+  const int pageItems = (availableHeight > 0 && lineHeight > 0) ? availableHeight / lineHeight : itemCount;
+  const int totalPages = (pageItems > 0) ? (itemCount + pageItems - 1) / pageItems : 1;
+
+  // Scroll indicators when multiple pages
+  if (totalPages > 1) {
+    constexpr int indicatorWidth = 20;
+    constexpr int arrowSize = 6;
+    constexpr int margin = 15;
+
+    const int centerX = contentRect.x + contentRect.width - indicatorWidth / 2 - margin;
+    const int indicatorTop = startY;
+    const int indicatorBottom = startY + availableHeight - arrowSize;
+
+    // Up arrow
+    for (int i = 0; i < arrowSize; ++i) {
+      const int lineWidth = 1 + i * 2;
+      const int sx = centerX - i;
+      renderer.drawLine(sx, indicatorTop + i, sx + lineWidth - 1, indicatorTop + i);
+    }
+
+    // Down arrow
+    for (int i = 0; i < arrowSize; ++i) {
+      const int lineWidth = 1 + (arrowSize - 1 - i) * 2;
+      const int sx = centerX - (arrowSize - 1 - i);
+      renderer.drawLine(sx, indicatorBottom - arrowSize + 1 + i, sx + lineWidth - 1,
+                        indicatorBottom - arrowSize + 1 + i);
+    }
+  }
+
+  const int pageStartIndex = (pageItems > 0) ? (selectedIndex / pageItems) * pageItems : 0;
+  for (int i = pageStartIndex; i < itemCount && i < pageStartIndex + pageItems; ++i) {
+    const int displayY = startY + (i - pageStartIndex) * lineHeight;
+    const bool isSelected = (i == selectedIndex);
+    if (isSelected) {
+      renderer.fillRect(contentRect.x, displayY, contentRect.width - 1, lineHeight, true);
+    }
+    renderer.drawText(UI_10_FONT_ID, contentRect.x + 20, displayY, rowLabel(i), !isSelected);
+    const char* value = rowValue(i);
+    if (value != nullptr && value[0] != '\0') {
+      const int valueWidth = renderer.getTextWidth(UI_10_FONT_ID, value);
+      renderer.drawText(UI_10_FONT_ID, contentRect.x + contentRect.width - 20 - valueWidth, displayY, value,
+                        !isSelected);
+    }
+  }
+}
+
+int BaseTheme::getReaderMenuPageItems(const GfxRenderer& /*renderer*/, Rect contentRect) const {
+  constexpr int headerArea = 75;
+  constexpr int rowHeight = BaseMetrics::values.listRowHeight;
+  const int available = contentRect.height - headerArea;
+  return (available > 0) ? available / rowHeight : 1;
 }
 
 Rect BaseTheme::drawPopup(const GfxRenderer& renderer, const char* message) const {
