@@ -1,2 +1,15 @@
 CompileFlags:
-    Add: [-std=c++2a]
+    Add:
+      - -std=c++2a
+      - --target=riscv32
+    Remove:
+      - -fstrict-volatile-bitfields
+      - -fno-tree-switch-conversion
+      - -freorder-blocks
+      - -Wwrite-strings
+      - -fstack-protector
+
+Diagnostics:
+    UnusedIncludes: Strict
+    MissingIncludes: Strict
+    Suppress: [clang-diagnostic-gnu-designator]
