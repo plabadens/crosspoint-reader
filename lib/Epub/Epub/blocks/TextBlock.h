@@ -9,21 +9,24 @@
 #include "Block.h"
 #include "BlockStyle.h"
 
-int32_t letterSpacingFP = 0;  // Extra spacing per character (16.8 fixed-point)
+// Represents a line of text on a page
 class TextBlock final : public Block {
  private:
   std::vector<std::string> words;
   std::vector<int32_t> wordXpos;
   std::vector<EpdFontFamily::Style> wordStyles;
+  BlockStyle blockStyle;
   int32_t letterSpacingFP = 0;  // Extra spacing per character (16.8 fixed-point)
 
  public:
-  explicit TextBlock(std::vector<std::string> words, std::vector<int16_t> word_xpos,
-                     std::vector<EpdFontFamily::Style> word_styles, const BlockStyle& blockStyle = BlockStyle())
+  explicit TextBlock(std::vector<std::string> words, std::vector<int32_t> word_xpos,
+                     std::vector<EpdFontFamily::Style> word_styles, const BlockStyle& blockStyle = BlockStyle(),
+                     int32_t letterSpacingFP = 0)
       : words(std::move(words)),
         wordXpos(std::move(word_xpos)),
         wordStyles(std::move(word_styles)),
-        blockStyle(blockStyle) {}
+        blockStyle(blockStyle),
+        letterSpacingFP(letterSpacingFP) {}
   ~TextBlock() override = default;
   void setBlockStyle(const BlockStyle& blockStyle) { this->blockStyle = blockStyle; }
   const BlockStyle& getBlockStyle() const { return blockStyle; }

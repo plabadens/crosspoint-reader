@@ -11,6 +11,7 @@
 
 #include "hyphenation/Hyphenator.h"
 
+constexpr int MAX_COST = std::numeric_limits<int>::max();
 static constexpr int32_t MAX_JUSTIFIED_GAP_PERCENT = 140;  // 140% threshold
 
 namespace {
@@ -546,21 +547,51 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
   const int adjustedLineWordWidthSum = lineWordWidthSum - leftProtrusion - rightProtrusion;
 
   // For justified text, compute per-gap extra to distribute remaining space evenly
-  static constexpr int32_t MAX_JUSTIFIED_GAP_PERCENT = 140;                             // 140% threshold
-  const int32_t justifyExtraFP = (spareSpaceFP + actualGapCount / 2) / actualGapCount;  // Round to nearest
+  const int spareSpace = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps;
+  const int32_t spareSpaceFP = fp4::fromPixel(spareSpace);
+  int32_t justifyExtraFP =
+      (actualGapCount >= 1) ? (spareSpaceFP + actualGapCount / 2) / static_cast<int>(actualGapCount) : 0;
 
-  // Calculate initial x position (first line starts at indent for left/justified text;
-  // may be negative for hanging indents, e.g. margin-left:3em; text-indent:-1em).
+  // Letter spacing support
+  int32_t letterSpacingFP = 0;
+  if (blockStyle.alignment == CssTextAlign::Justify && !isLastLine && actualGapCount >= 1) {
+    const int32_t naturalGapFP = fp4::fromPixel(totalNaturalGaps / actualGapCount);  // Approximate natural gap
+    const int32_t maxGapFP = (naturalGapFP * MAX_JUSTIFIED_GAP_PERCENT) / 100;
+    const int32_t actualGapFP = naturalGapFP + justifyExtraFP;
+
+    if (actualGapFP > maxGapFP) {
+      // Switch to letter-spacing mode
+      const int32_t excessFP = actualGapFP - maxGapFP;
+      int totalChars = 0;
+      for (size_t i = lastBreakAt; i < lineBreak; ++i) {
+        totalChars += words[i].length();
+        if (i < lineBreak - 1) totalChars += 1;  // space
+      }
+
+      if (totalChars > 0) {
+        letterSpacingFP = excessFP / totalChars;
+        // Cap letter-spacing at 5% of em (typographical limit)
+        const int emSize = renderer.getLineHeight(fontId);  // use line height as em proxy
+        const int32_t maxLetterSpacingFP = fp4::fromPixel(emSize) / 20;
+        letterSpacingFP = std::min(letterSpacingFP, maxLetterSpacingFP);
+      }
+      // Limit word-gap justification
+      justifyExtraFP = maxGapFP - naturalGapFP;
+    }
+  } else if (isLastLine || blockStyle.alignment != CssTextAlign::Justify) {
+    justifyExtraFP = 0;
+  }
+
+  // Calculate initial x position
   int32_t xposFP = fp4::fromPixel(firstLineIndent - leftProtrusion);
   if (blockStyle.alignment == CssTextAlign::Right) {
-    xpos = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps - leftProtrusion;
+    xposFP = fp4::fromPixel(effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps - leftProtrusion);
   } else if (blockStyle.alignment == CssTextAlign::Center) {
-    xpos = (effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps) / 2 - leftProtrusion;
+    xposFP = fp4::fromPixel((effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps) / 2 - leftProtrusion);
   }
 
   // Pre-calculate X positions for words
-  // Continuation words attach to the previous word with no space before them
-  std::vector<int16_t> lineXPos;
+  std::vector<int32_t> lineXPos;
   lineXPos.reserve(lineWordCount);
 
   for (size_t wordIdx = 0; wordIdx < lineWordCount; wordIdx++) {
@@ -569,26 +600,24 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
     const bool nextIsContinuation = wordIdx + 1 < lineWordCount && continuesVec[lastBreakAt + wordIdx + 1];
     if (nextIsContinuation) {
       int advance = wordWidths[lastBreakAt + wordIdx];
-      // Cross-boundary kerning for continuation words (e.g. nonbreaking spaces, attached punctuation)
+      // Cross-boundary kerning for continuation words
       advance +=
           renderer.getKerning(fontId, lastCodepoint(words[lastBreakAt + wordIdx]),
                               firstCodepoint(words[lastBreakAt + wordIdx + 1]), wordStyles[lastBreakAt + wordIdx]);
-      xpos += advance;
+      xposFP += fp4::fromPixel(advance);
     } else {
-      int gap = 0;
+      int32_t gapFP = 0;
       if (wordIdx + 1 < lineWordCount) {
-        gap = renderer.getSpaceAdvance(fontId, lastCodepoint(words[lastBreakAt + wordIdx]),
-                                       firstCodepoint(words[lastBreakAt + wordIdx + 1]),
-                                       wordStyles[lastBreakAt + wordIdx]);
+        gapFP = fp4::fromPixel(renderer.getSpaceAdvance(fontId, lastCodepoint(words[lastBreakAt + wordIdx]),
+                                                        firstCodepoint(words[lastBreakAt + wordIdx + 1]),
+                                                        wordStyles[lastBreakAt + wordIdx]));
+        gapFP += justifyExtraFP;
       }
-      if (blockStyle.alignment == CssTextAlign::Justify && !isLastLine) {
-        gap += justifyExtraFP;
-      }
-      xposFP += fp4::fromPixel(wordWidths[lastBreakAt + wordIdx]) + naturalGapFP + justifyExtraFP;
+      xposFP += fp4::fromPixel(wordWidths[lastBreakAt + wordIdx]) + gapFP;
     }
   }
 
-  // Build line data by moving from the original vectors using index range
+  // Build line data
   std::vector<std::string> lineWords(std::make_move_iterator(words.begin() + lastBreakAt),
                                      std::make_move_iterator(words.begin() + lineBreak));
   std::vector<EpdFontFamily::Style> lineWordStyles(wordStyles.begin() + lastBreakAt, wordStyles.begin() + lineBreak);
@@ -599,6 +628,6 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
     }
   }
 
-  processLine(
-      std::make_shared<TextBlock>(std::move(lineWords), std::move(lineXPos), std::move(lineWordStyles), blockStyle));
+  processLine(std::make_shared<TextBlock>(std::move(lineWords), std::move(lineXPos), std::move(lineWordStyles),
+                                          blockStyle, letterSpacingFP));
 }
