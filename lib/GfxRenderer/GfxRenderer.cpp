@@ -979,6 +979,13 @@ int GfxRenderer::getKerning(const int fontId, const uint32_t leftCp, const uint3
   return fp4::toPixel(kernFP);                                           // snap 4.4 fixed-point to nearest pixel
 }
 
+int GfxRenderer::getCharAdvanceX(const int fontId, const uint32_t cp, const EpdFontFamily::Style style) const {
+  const auto fontIt = fontMap.find(fontId);
+  if (fontIt == fontMap.end()) return 0;
+  const EpdGlyph* glyph = fontIt->second.getGlyph(cp, style);
+  return glyph ? fp4::toPixel(glyph->advanceX) : 0;
+}
+
 int GfxRenderer::getTextAdvanceX(const int fontId, const char* text, EpdFontFamily::Style style) const {
   const auto fontIt = fontMap.find(fontId);
   if (fontIt == fontMap.end()) {

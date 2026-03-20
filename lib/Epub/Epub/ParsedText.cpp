@@ -74,6 +74,54 @@ uint16_t measureWordWidth(const GfxRenderer& renderer, const int fontId, const s
   return renderer.getTextAdvanceX(fontId, sanitized.c_str(), style);
 }
 
+float getRightProtrusionRatio(const uint32_t cp) {
+  switch (cp) {
+    case '-':
+    case 0x2010:
+    case 0x2013:
+      return 0.5f;  // Hyphens protrude 50%
+    case '.':
+    case ',':
+      return 0.7f;  // Periods/commas protrude 70%
+    case ';':
+    case ':':
+      return 0.5f;
+    case '\'':
+    case '"':
+    case 0x2019:
+    case 0x201D:
+      return 0.5f;  // Right quotes
+    default:
+      return 0.0f;
+  }
+}
+
+float getLeftProtrusionRatio(const uint32_t cp) {
+  switch (cp) {
+    case '\'':
+    case '"':
+    case 0x2018:
+    case 0x201C:
+      return 0.5f;  // Left quotes
+    default:
+      return 0.0f;
+  }
+}
+
+int getLeftProtrusionPixels(const GfxRenderer& renderer, const int fontId, const EpdFontFamily::Style style,
+                            const uint32_t cp) {
+  const float ratio = getLeftProtrusionRatio(cp);
+  if (ratio == 0.0f) return 0;
+  return static_cast<int>(renderer.getCharAdvanceX(fontId, cp, style) * ratio);
+}
+
+int getRightProtrusionPixels(const GfxRenderer& renderer, const int fontId, const EpdFontFamily::Style style,
+                             const uint32_t cp) {
+  const float ratio = getRightProtrusionRatio(cp);
+  if (ratio == 0.0f) return 0;
+  return static_cast<int>(renderer.getCharAdvanceX(fontId, cp, style) * ratio);
+}
+
 }  // namespace
 
 void ParsedText::addWord(std::string word, const EpdFontFamily::Style fontStyle, const bool underline,
@@ -193,7 +241,11 @@ std::vector<size_t> ParsedText::computeLineBreaks(const GfxRenderer& renderer, c
       }
       currlen += wordWidths[j] + gap;
 
-      if (currlen > effectivePageWidth) {
+      int leftProtrusion = getLeftProtrusionPixels(renderer, fontId, wordStyles[i], firstCodepoint(words[i]));
+      int rightProtrusion = getRightProtrusionPixels(renderer, fontId, wordStyles[j], lastCodepoint(words[j]));
+      int adjustedLen = currlen - leftProtrusion - rightProtrusion;
+
+      if (adjustedLen > effectivePageWidth) {
         break;
       }
 
@@ -206,7 +258,7 @@ std::vector<size_t> ParsedText::computeLineBreaks(const GfxRenderer& renderer, c
       if (j == totalWordCount - 1) {
         cost = 0;  // Last line
       } else {
-        const int remainingSpace = effectivePageWidth - currlen;
+        const int remainingSpace = effectivePageWidth - adjustedLen;
         // Use long long for the square to prevent overflow
         const long long cost_ll = static_cast<long long>(remainingSpace) * remainingSpace + dp[j + 1];
 
@@ -309,15 +361,22 @@ std::vector<size_t> ParsedText::computeHyphenatedLineBreaks(const GfxRenderer& r
       }
       const int candidateWidth = spacing + wordWidths[currentIndex];
 
+      const int leftProtrusion =
+          getLeftProtrusionPixels(renderer, fontId, wordStyles[lineStart], firstCodepoint(words[lineStart]));
+      const int rightProtrusion =
+          getRightProtrusionPixels(renderer, fontId, wordStyles[currentIndex], lastCodepoint(words[currentIndex]));
+      const int adjustedWidth = lineWidth + candidateWidth - leftProtrusion - rightProtrusion;
+
       // Word fits on current line
-      if (lineWidth + candidateWidth <= effectivePageWidth) {
+      if (adjustedWidth <= effectivePageWidth) {
         lineWidth += candidateWidth;
         ++currentIndex;
         continue;
       }
 
       // Word would overflow — try to split based on hyphenation points
-      const int availableWidth = effectivePageWidth - lineWidth - spacing;
+      const int hyphenProtrusion = getRightProtrusionPixels(renderer, fontId, wordStyles[currentIndex], '-');
+      const int availableWidth = effectivePageWidth - lineWidth - spacing + leftProtrusion + hyphenProtrusion;
       const bool allowFallbackBreaks = isFirstWord;  // Only for first word on line
 
       if (availableWidth > 0 &&
@@ -480,19 +539,25 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
   const int effectivePageWidth = pageWidth - firstLineIndent;
   const bool isLastLine = breakIndex == lineBreakIndices.size() - 1;
 
+  const int leftProtrusion =
+      getLeftProtrusionPixels(renderer, fontId, wordStyles[lastBreakAt], firstCodepoint(words[lastBreakAt]));
+  const int rightProtrusion =
+      getRightProtrusionPixels(renderer, fontId, wordStyles[lineBreak - 1], lastCodepoint(words[lineBreak - 1]));
+  const int adjustedLineWordWidthSum = lineWordWidthSum - leftProtrusion - rightProtrusion;
+
   // For justified text, compute per-gap extra to distribute remaining space evenly
-  const int spareSpace = effectivePageWidth - lineWordWidthSum - totalNaturalGaps;
+  const int spareSpace = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps;
   const int justifyExtra = (blockStyle.alignment == CssTextAlign::Justify && !isLastLine && actualGapCount >= 1)
                                ? spareSpace / static_cast<int>(actualGapCount)
                                : 0;
 
   // Calculate initial x position (first line starts at indent for left/justified text;
   // may be negative for hanging indents, e.g. margin-left:3em; text-indent:-1em).
-  auto xpos = static_cast<int16_t>(firstLineIndent);
+  auto xpos = static_cast<int16_t>(firstLineIndent - leftProtrusion);
   if (blockStyle.alignment == CssTextAlign::Right) {
-    xpos = effectivePageWidth - lineWordWidthSum - totalNaturalGaps;
+    xpos = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps - leftProtrusion;
   } else if (blockStyle.alignment == CssTextAlign::Center) {
-    xpos = (effectivePageWidth - lineWordWidthSum - totalNaturalGaps) / 2;
+    xpos = (effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps) / 2 - leftProtrusion;
   }
 
   // Pre-calculate X positions for words
