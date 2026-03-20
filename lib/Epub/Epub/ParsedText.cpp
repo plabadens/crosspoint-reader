@@ -11,7 +11,7 @@
 
 #include "hyphenation/Hyphenator.h"
 
-constexpr int MAX_COST = std::numeric_limits<int>::max();
+static constexpr int32_t MAX_JUSTIFIED_GAP_PERCENT = 140;  // 140% threshold
 
 namespace {
 
@@ -546,14 +546,12 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
   const int adjustedLineWordWidthSum = lineWordWidthSum - leftProtrusion - rightProtrusion;
 
   // For justified text, compute per-gap extra to distribute remaining space evenly
-  const int spareSpace = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps;
-  const int justifyExtra = (blockStyle.alignment == CssTextAlign::Justify && !isLastLine && actualGapCount >= 1)
-                               ? spareSpace / static_cast<int>(actualGapCount)
-                               : 0;
+  static constexpr int32_t MAX_JUSTIFIED_GAP_PERCENT = 140;                             // 140% threshold
+  const int32_t justifyExtraFP = (spareSpaceFP + actualGapCount / 2) / actualGapCount;  // Round to nearest
 
   // Calculate initial x position (first line starts at indent for left/justified text;
   // may be negative for hanging indents, e.g. margin-left:3em; text-indent:-1em).
-  auto xpos = static_cast<int16_t>(firstLineIndent - leftProtrusion);
+  int32_t xposFP = fp4::fromPixel(firstLineIndent - leftProtrusion);
   if (blockStyle.alignment == CssTextAlign::Right) {
     xpos = effectivePageWidth - adjustedLineWordWidthSum - totalNaturalGaps - leftProtrusion;
   } else if (blockStyle.alignment == CssTextAlign::Center) {
@@ -566,7 +564,7 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
   lineXPos.reserve(lineWordCount);
 
   for (size_t wordIdx = 0; wordIdx < lineWordCount; wordIdx++) {
-    lineXPos.push_back(xpos);
+    lineXPos.push_back(xposFP);
 
     const bool nextIsContinuation = wordIdx + 1 < lineWordCount && continuesVec[lastBreakAt + wordIdx + 1];
     if (nextIsContinuation) {
@@ -584,9 +582,9 @@ void ParsedText::extractLine(const size_t breakIndex, const int pageWidth, const
                                        wordStyles[lastBreakAt + wordIdx]);
       }
       if (blockStyle.alignment == CssTextAlign::Justify && !isLastLine) {
-        gap += justifyExtra;
+        gap += justifyExtraFP;
       }
-      xpos += wordWidths[lastBreakAt + wordIdx] + gap;
+      xposFP += fp4::fromPixel(wordWidths[lastBreakAt + wordIdx]) + naturalGapFP + justifyExtraFP;
     }
   }
 

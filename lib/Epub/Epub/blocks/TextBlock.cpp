@@ -13,7 +13,7 @@ void TextBlock::render(const GfxRenderer& renderer, const int fontId, const int 
   }
 
   for (size_t i = 0; i < words.size(); i++) {
-    const int wordX = wordXpos[i] + x;
+    const int wordX = fp4::toPixel(wordXpos[i]) + x;
     const EpdFontFamily::Style currentStyle = wordStyles[i];
     renderer.drawText(fontId, wordX, y, words[i].c_str(), true, currentStyle);
 
@@ -49,7 +49,7 @@ bool TextBlock::serialize(FsFile& file) const {
   }
 
   // Word data
-  serialization::writePod(file, static_cast<uint16_t>(words.size()));
+  serialization::writePod(file, static_cast<int16_t>(words.size()));
   for (const auto& w : words) serialization::writeString(file, w);
   for (auto x : wordXpos) serialization::writePod(file, x);
   for (auto s : wordStyles) serialization::writePod(file, s);
@@ -74,7 +74,7 @@ bool TextBlock::serialize(FsFile& file) const {
 std::unique_ptr<TextBlock> TextBlock::deserialize(FsFile& file) {
   uint16_t wc;
   std::vector<std::string> words;
-  std::vector<int16_t> wordXpos;
+  std::vector<int32_t> wordXpos;
   std::vector<EpdFontFamily::Style> wordStyles;
   BlockStyle blockStyle;
 

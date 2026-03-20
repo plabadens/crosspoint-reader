@@ -13,7 +13,7 @@
 class TextBlock final : public Block {
  private:
   std::vector<std::string> words;
-  std::vector<int16_t> wordXpos;
+  std::vector<int32_t> wordXpos;
   std::vector<EpdFontFamily::Style> wordStyles;
   BlockStyle blockStyle;
 
