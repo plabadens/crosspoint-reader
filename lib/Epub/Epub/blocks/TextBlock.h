@@ -9,13 +9,13 @@
 #include "Block.h"
 #include "BlockStyle.h"
 
-// Represents a line of text on a page
+int32_t letterSpacingFP = 0;  // Extra spacing per character (16.8 fixed-point)
 class TextBlock final : public Block {
  private:
   std::vector<std::string> words;
   std::vector<int32_t> wordXpos;
   std::vector<EpdFontFamily::Style> wordStyles;
-  BlockStyle blockStyle;
+  int32_t letterSpacingFP = 0;  // Extra spacing per character (16.8 fixed-point)
 
  public:
   explicit TextBlock(std::vector<std::string> words, std::vector<int16_t> word_xpos,

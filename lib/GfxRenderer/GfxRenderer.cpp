@@ -206,7 +206,7 @@ void GfxRenderer::drawCenteredText(const int fontId, const int y, const char* te
 }
 
 void GfxRenderer::drawText(const int fontId, const int x, const int y, const char* text, const bool black,
-                           const EpdFontFamily::Style style) const {
+                           const EpdFontFamily::Style style, const int32_t letterSpacingFP) const {
   const int yPos = y + getFontAscenderSize(fontId);
   int32_t xPosFP = fp4::fromPixel(x);  // 12.4 fixed-point accumulator
   int lastBaseX = x;
@@ -263,6 +263,7 @@ void GfxRenderer::drawText(const int fontId, const int x, const int y, const cha
     renderCharImpl<TextRotation::None>(*this, renderMode, font, cp, lastBaseX, yPos, black, style);
     if (glyph) {
       xPosFP += glyph->advanceX;  // 12.4 fixed-point advance
+      xPosFP += letterSpacingFP;  // Add letter spacing after each glyph
     }
     prevCp = cp;
   }

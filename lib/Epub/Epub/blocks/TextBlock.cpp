@@ -15,7 +15,7 @@ void TextBlock::render(const GfxRenderer& renderer, const int fontId, const int 
   for (size_t i = 0; i < words.size(); i++) {
     const int wordX = fp4::toPixel(wordXpos[i]) + x;
     const EpdFontFamily::Style currentStyle = wordStyles[i];
-    renderer.drawText(fontId, wordX, y, words[i].c_str(), true, currentStyle);
+    renderer.drawText(fontId, wordX, y, words[i].c_str(), true, currentStyle, letterSpacingFP);
 
     if ((currentStyle & EpdFontFamily::UNDERLINE) != 0) {
       const std::string& w = words[i];
@@ -66,7 +66,7 @@ bool TextBlock::serialize(FsFile& file) const {
   serialization::writePod(file, blockStyle.paddingLeft);
   serialization::writePod(file, blockStyle.paddingRight);
   serialization::writePod(file, blockStyle.textIndent);
-  serialization::writePod(file, blockStyle.textIndentDefined);
+  serialization::writePod(file, letterSpacingFP);
 
   return true;
 }
@@ -76,7 +76,7 @@ std::unique_ptr<TextBlock> TextBlock::deserialize(FsFile& file) {
   std::vector<std::string> words;
   std::vector<int32_t> wordXpos;
   std::vector<EpdFontFamily::Style> wordStyles;
-  BlockStyle blockStyle;
+  int32_t letterSpacingFP = 0;  // Extra spacing per character (16.8 fixed-point)
 
   // Word count
   serialization::readPod(file, wc);
@@ -107,7 +107,7 @@ std::unique_ptr<TextBlock> TextBlock::deserialize(FsFile& file) {
   serialization::readPod(file, blockStyle.paddingLeft);
   serialization::readPod(file, blockStyle.paddingRight);
   serialization::readPod(file, blockStyle.textIndent);
-  serialization::readPod(file, blockStyle.textIndentDefined);
+  serialization::readPod(file, letterSpacingFP);
 
   return std::unique_ptr<TextBlock>(
       new TextBlock(std::move(words), std::move(wordXpos), std::move(wordStyles), blockStyle));
